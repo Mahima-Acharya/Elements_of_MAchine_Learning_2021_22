@@ -1,0 +1,62 @@
+# Name                           Matriculation number
+# Mahima Mahabaleshwar Acharya	 7003016
+# Harsh Agarwal		               7024725
+
+library(glmnet)
+library(boot)
+
+#1
+load("prostate.Rdata")
+
+#str(prostate.test)
+#str(prostate.train)
+
+#names(prostate.train)
+
+#2
+x_train <- model.matrix(lpsa ~ ., data=prostate.train)[, -1]
+y_train <- prostate.train$lpsa
+
+x_test <- model.matrix(lpsa ~ ., data=prostate.test)[, -1]
+y_test <- prostate.test$lpsa
+
+grid <- 10^seq (10, -2, length=100)
+ridge.mod <- glmnet(x_train, y_train, alpha = 0, lambda=grid)
+
+plot(ridge.mod, xvar = "lambda", label = TRUE)
+
+#3
+set.seed(123)
+cv.out = cv.glmnet(x_train, y_train, alpha = 0) # Fit ridge regression model on training data
+ridge.bestlam = cv.out$lambda.min  # Select lamda that minimizes training MSE
+ridge.bestlam
+
+ridge_pred = predict(ridge.mod, s=ridge.bestlam, newx=x_train) # Use best lambda to predict train data
+mean((ridge_pred-y_train)^2) # Calculate train MSE
+
+ridge_pred = predict(ridge.mod, s=ridge.bestlam, newx=x_test) # Use best lambda to predict test data
+mean((ridge_pred-y_test)^2) # Calculate test MSE
+
+ridge_coef = predict(ridge.mod, type = "coefficients", s = ridge.bestlam)
+ridge_coef
+
+#4
+lasso.mod = glmnet(x_train, y_train, alpha = 1, lambda = grid) # Fit lasso model on training data
+
+plot(lasso.mod, xvar = "lambda", label = TRUE)
+
+#5
+
+set.seed(123)
+cv.out = cv.glmnet(x_train, y_train, alpha = 1) # Fit lasso model on training data
+lasso.bestlam = cv.out$lambda.min # Select lamda that minimizes training MSE
+
+lasso_pred = predict(lasso.mod, s = lasso.bestlam, newx = x_train) # Use best lambda to predict test data
+mean((lasso_pred - y_train)^2) # Calculate test MSE
+
+lasso_pred = predict(lasso.mod, s = lasso.bestlam, newx = x_test) # Use best lambda to predict test data
+mean((lasso_pred - y_test)^2) # Calculate test MSE
+
+lasso_coef = predict(lasso.mod, type = "coefficients", s = lasso.bestlam)
+lasso_coef
+lasso_coef[lasso_coef!= 0] #non-zero coefficients of lasso regression model
