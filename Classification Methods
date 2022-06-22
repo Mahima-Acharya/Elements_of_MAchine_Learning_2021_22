@@ -1,0 +1,122 @@
+# Name                           Matriculation number
+# Mahima Mahabaleshwar Acharya	 7003016
+# Harsh Agarwal		               7024725
+
+
+
+install.packages("dplyr")
+library(MASS)
+library(dplyr)
+library(stringr)
+library(glmnet)
+library(boot)
+#1
+phoneme = read.csv("phoneme.csv", header = TRUE)
+str(phoneme)
+count(phoneme)
+
+train_set = phoneme %>% 
+  filter(str_detect(phoneme$speaker, "train")) %>%
+  dplyr::select(-c(row.names, speaker))
+count(train_set)
+
+test_set = phoneme %>% 
+  filter(str_detect(phoneme$speaker, "test")) %>%
+  dplyr::select(!c(row.names, speaker))
+count(test_set)
+
+
+#2
+lda_model = lda(g~., train_set)
+
+train_predict_lda = predict(lda_model)$class
+test_predict_lda = predict(lda_model, test_set)$class
+
+cm_train_lda = table(train_set$g, train_predict_lda, dnn = c('Actual Group','Predicted Group'))
+train_error_lda = 1-(sum(diag(cm_train_lda))/sum(cm_train_lda))
+train_error_lda
+
+cm_test_lda = table(test_set$g, test_predict_lda, dnn = c('Actual Group','Predicted Group'))
+test_error_lda = 1-(sum(diag(cm_test_lda))/sum(cm_test_lda))
+test_error_lda
+
+
+#3
+train_set.aa_ao = filter(train_set, g == "aa" | g == "ao")
+test_set.aa_ao  = filter(test_set,  g == "aa" | g == "ao")
+
+lda_model.aa_ao = lda(g~., train_set.aa_ao)
+
+train_predict_lda.aa_ao = predict(lda_model.aa_ao)$class
+test_predict_lda.aa_ao = predict(lda_model.aa_ao, test_set.aa_ao)$class
+
+cm_train_lda.aa_ao = table(train_set.aa_ao$g, train_predict_lda.aa_ao, dnn = c('Actual Group','Predicted Group'))
+train_error_lda.aa_ao = 1-(sum(diag(cm_train_lda.aa_ao))/sum(cm_train_lda.aa_ao))
+train_error_lda.aa_ao
+
+cm_test_lda.aa_ao = table(test_set.aa_ao$g, test_predict_lda.aa_ao, dnn = c('Actual Group','Predicted Group'))
+test_error_lda.aa_ao = 1-(sum(diag(cm_test_lda.aa_ao))/sum(cm_test_lda.aa_ao))
+test_error_lda.aa_ao
+
+
+#4
+qda_model = qda(g~., train_set)
+qda_model.aa_ao = qda(g~., train_set.aa_ao)
+
+train_predict_qda = predict(qda_model)$class
+test_predict_qda = predict(qda_model, test_set)$class
+
+cm_train_qda = table(train_set$g, train_predict_qda, dnn = c('Actual Group','Predicted Group'))
+train_error_qda = 1-(sum(diag(cm_train_qda))/sum(cm_train_qda))
+train_error_qda
+
+cm_test_qda = table(test_set$g, test_predict_qda, dnn = c('Actual Group','Predicted Group'))
+test_error_qda = 1-(sum(diag(cm_test_qda))/sum(cm_test_qda))
+test_error_qda
+
+train_predict_qda.aa_ao = predict(qda_model.aa_ao)$class
+test_predict_qda.aa_ao = predict(qda_model.aa_ao, test_set.aa_ao)$class
+
+cm_train_qda.aa_ao = table(train_set.aa_ao$g, train_predict_qda.aa_ao, dnn = c('Actual Group','Predicted Group'))
+train_error_qda.aa_ao = 1-(sum(diag(cm_train_qda.aa_ao))/sum(cm_train_qda.aa_ao))
+train_error_qda.aa_ao
+
+cm_test_qda.aa_ao = table(test_set.aa_ao$g, test_predict_qda.aa_ao, dnn = c('Actual Group','Predicted Group'))
+test_error_qda.aa_ao = 1-(sum(diag(cm_test_qda.aa_ao))/sum(cm_test_qda.aa_ao))
+test_error_qda.aa_ao
+
+#5
+cm_train_lda.aa_ao
+cm_test_lda.aa_ao
+cm_train_qda.aa_ao
+cm_test_qda.aa_ao
+
+
+#6
+
+load("prostate.Rdata")
+str(prostate.test)
+str(prostate.train)
+
+names(prostate.train)
+
+##LOOCV
+
+glm.fit = glm(lpsa ~ ., data = prostate.train)
+cv.error= cv.glm(prostate.train, glm.fit)
+cv.error$delta
+
+
+## k=5, 5 fold cross validation
+
+cv.error.5 = cv.glm(prostate.train,glm.fit,K=5)
+cv.error.5$delta
+
+## k=10, 10 fold cross validation
+
+cv.error.10 = cv.glm(prostate.train,glm.fit,K=10)
+cv.error.10$delta
+
+predict_test = predict(glm.fit,prostate.test)
+test_error = mean((prostate.test$lpsa - predict_test)^2)
+test_error
